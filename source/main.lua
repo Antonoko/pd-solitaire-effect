@@ -8,27 +8,42 @@ local screenHeight <const> = playdate.display.getHeight()
 
 ---------------------------------
 
-local card_imagetable = gfx.imagetable.new("card_placeholder")
+local card_imagetable = gfx.imagetable.new("card_placeholder_fun")
 local card_width, card_height = card_imagetable[1]:getSize()
 local win_animation_card_info = {}
 local win_animation_render_canvas = gfx.image.new(screenWidth, screenHeight, gfx.kColorClear)
 local win_animation_render_sprite = gfx.sprite.new(win_animation_render_canvas)
 
 
-function init_win_animation_card_info(x_array)
+function init_win_animation_card_info(x_array, y_baseline)
+    -- function mapValue(old_value, old_min, old_max, new_min, new_max)
+    --     return ((old_value - old_min) * (new_max - new_min) / (old_max - old_min) + new_min)
+    -- end
+
     function mapValue(old_value, old_min, old_max, new_min, new_max)
-        return ((old_value - old_min) * (new_max - new_min) / (old_max - old_min) + new_min)
+        -- 确保 old_min 和 old_max 不相等，且 old_value 在这个范围内
+        if old_min >= old_max or old_value < old_min or old_value > old_max then
+            error("Invalid input values")
+        end
+        
+        -- 对数映射
+        local log_old_min = math.log(old_min)
+        local log_old_max = math.log(old_max)
+        local log_old_value = math.log(old_value)
+    
+        local new_value = ((log_old_value - log_old_min) * (new_max - new_min) / (log_old_max - log_old_min) + new_min)
+        return new_value
     end
 
     local card_stack_pos = {
         x = x_array,
-        y = 30
+        y = y_baseline
     }
     win_animation_card_info = {}
     next_card_trigger_time_accumulation = 1
 
     for i = 1, #card_imagetable, 1 do
-        next_card_trigger_time_accumulation += math.random(5, 40)
+        next_card_trigger_time_accumulation += math.random(10, 50)
         local bounce_interval = math.random(10, 100)
         local start_x = card_stack_pos.x[math.random(1, #card_stack_pos.x)]
         local direction_left = math.random() < 0.6
@@ -44,7 +59,7 @@ function init_win_animation_card_info(x_array)
             img = card_imagetable[i],
             bounce_interval = bounce_interval,
             decay_factor = math.random(4, 9)*0.1,
-            speed = mapValue(bounce_interval, 10, 100, 1,2.5),   -- Normalize the speed, so that cards with short intervals fall at a slower speed, consistent with cards with long intervals
+            speed = mapValue(bounce_interval, 10, 100, .3,2.5),   -- Normalize the speed, so that cards with short intervals fall at a slower speed, consistent with cards with long intervals
             next_card_trigger_time = next_card_trigger_time_accumulation,
             direction_left = direction_left
         }
@@ -53,12 +68,13 @@ end
 
 function init_win_animation()
     win_animation_render_canvas = gfx.image.new(screenWidth, screenHeight, gfx.kColorClear)
+    -- win_animation_render_canvas = gfx.image.new("bg-refer")
     win_animation_render_sprite = gfx.sprite.new(win_animation_render_canvas)
     win_animation_render_sprite:moveTo(screenWidth/2, screenHeight/2)
     win_animation_render_sprite:add()
     win_animation_render_sprite:setZIndex(100)   --比提示框低
     
-    init_win_animation_card_info({15, 80, 145, 275})
+    init_win_animation_card_info({15, 80, 145, 275}, 30)
 end
 
 
@@ -89,7 +105,7 @@ function get_bounce_position(t, x0, y0, groundY, bounceInterval, decayFactor, sp
     -- print("x0 "..x0.." x "..x.." seg "..seg)
 
     local highest_y = (screenHeight - y0)*decayFactor^(seg)
-    if highest_y < card_height then
+    if highest_y < card_height +3 then
         highest_y = card_height + 60*decayFactor^(math.abs(seg-6))
     end
     
@@ -143,6 +159,7 @@ end
 
 local time = 0
 init_win_animation()
+
 
 function pd.update()
     gfx.sprite.update()
