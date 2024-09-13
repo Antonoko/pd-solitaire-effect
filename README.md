@@ -14,3 +14,6 @@ Configuration required:
 - Coordinates of the positions of several decks to be launched
 
 That's it! I think the code is not complicated, feel free to use and modify.
+
+Additional work that may need to be done:
+- Add a fade-out animation after interrupting the animation. (can be achieved through `playdate.graphics.image:fadedImage`)
